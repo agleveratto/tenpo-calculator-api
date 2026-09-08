@@ -6,3 +6,11 @@ resilience4j.retry:
       retryExceptions:
         - java.lang.RuntimeException
         - org.springframework.web.client.RestClientException
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
