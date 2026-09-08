@@ -2,18 +2,22 @@ package com.tenpo.calculator.infrastructure.adapter.out.external;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@SpringBootTest
 class PercentageMockAdapterTest {
 
-    private final PercentageMockAdapter adapter = new PercentageMockAdapter();
+    @Autowired
+    private PercentageMockAdapter adapter;
 
     @Test
-    @DisplayName("Debe retornar un porcentaje por defecto del 10%")
-    void shouldReturnDefaultPercentage() {
-        double percentage = adapter.getPercentage();
+    @DisplayName("Debe agotar los reintentos y retornar el valor del fallback cuando el método falla")
+    void shouldExecuteRetryAndTriggerFallback() {
+        double result = adapter.getPercentage();
 
-        assertEquals(10.0, percentage, "El porcentaje retornado por el adapter mock debe ser 10.0");
+        assertEquals(10.0, result, "Debe retornar 10.0 provisto por el fallback tras agotar los reintentos");
     }
 }

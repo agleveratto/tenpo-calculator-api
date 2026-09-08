@@ -1,0 +1,8 @@
+resilience4j.retry:
+  instances:
+    percentageServiceRetry:
+      maxAttempts: 3
+      waitDuration: 1s
+      retryExceptions:
+        - java.lang.RuntimeException
+        - org.springframework.web.client.RestClientException
