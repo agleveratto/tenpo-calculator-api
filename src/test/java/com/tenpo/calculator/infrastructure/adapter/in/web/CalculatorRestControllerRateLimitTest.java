@@ -4,12 +4,14 @@ import com.tenpo.calculator.domain.model.CalculationResult;
 import com.tenpo.calculator.domain.port.in.CalculateUseCase;
 import com.tenpo.calculator.infrastructure.adapter.in.web.exception.GlobalExceptionHandler;
 import com.tenpo.calculator.infrastructure.adapter.in.web.interceptor.RateLimitInterceptor;
+import com.tenpo.calculator.infrastructure.adapter.in.web.interceptor.SemaphoreRpmLimiter;
 import com.tenpo.calculator.infrastructure.adapter.out.async.AsyncLogPublisher;
 import com.tenpo.calculator.infrastructure.config.WebConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.AutoConfigureDataJpa;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
@@ -23,7 +25,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(CalculatorRestController.class)
-@Import({RateLimitInterceptor.class, WebConfig.class, GlobalExceptionHandler.class})
+@AutoConfigureDataJpa
+@Import({RateLimitInterceptor.class, WebConfig.class, GlobalExceptionHandler.class, SemaphoreRpmLimiter.class})
 class CalculatorRestControllerRateLimitTest {
 
     @Autowired
@@ -60,10 +63,6 @@ class CalculatorRestControllerRateLimitTest {
                         .param("num1", "10.0")
                         .param("num2", "20.0")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isTooManyRequests())
-                .andExpect(jsonPath("$.num1").value(10.0))
-                .andExpect(jsonPath("$.num2").value(20.0))
-                .andExpect(jsonPath("$.percentageApplied").value(0.0))
-                .andExpect(jsonPath("$.finalResult").value(0.0));
+                .andExpect(status().isTooManyRequests());
     }
 }

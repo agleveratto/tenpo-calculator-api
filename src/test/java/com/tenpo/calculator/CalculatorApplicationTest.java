@@ -3,10 +3,11 @@ package com.tenpo.calculator;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class CalculatorApplicationTest {
 
     @Test
-    void contextLoads() {
+    void shouldLoadContextAndRunMain() {
+        CalculatorApplication.main(new String[]{});
     }
 }

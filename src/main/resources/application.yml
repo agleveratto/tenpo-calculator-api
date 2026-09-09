@@ -1,11 +1,13 @@
-resilience4j.retry:
-  instances:
-    percentageServiceRetry:
-      maxAttempts: 3
-      waitDuration: 1s
-      retryExceptions:
-        - java.lang.RuntimeException
-        - org.springframework.web.client.RestClientException
+resilience4j:
+  retry:
+    instances:
+      percentageServiceRetry:
+        maxAttempts: 3                  # Máximo 3 intentos ante fallos
+        waitDuration: 1s                # Espera de 1 segundo entre cada intento
+        enableExponentialBackoff: true  # Incrementa progresivamente el tiempo de espera (opcional pero recomendado)
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - java.lang.RuntimeException  # O la excepción específica que lance tu cliente HTTP mock
 spring:
   datasource:
     url: jdbc:h2:mem:testdb

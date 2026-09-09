@@ -1,4 +1,4 @@
-package com.tenpo.calculator.infrastructure.adapter.out.persistence.web;
+package com.tenpo.calculator.infrastructure.adapter.out.persistence;
 
 import com.tenpo.calculator.domain.model.ApiLog;
 import com.tenpo.calculator.domain.port.out.ApiLogRepositoryPort;

@@ -1,13 +1,21 @@
 package com.tenpo.calculator.infrastructure.adapter.in.web;
 
+import com.tenpo.calculator.domain.limiters.RpmLimiter;
 import com.tenpo.calculator.domain.model.CalculationResult;
 import com.tenpo.calculator.domain.port.in.CalculateUseCase;
+import com.tenpo.calculator.infrastructure.adapter.in.web.exception.GlobalExceptionHandler;
+import com.tenpo.calculator.infrastructure.adapter.in.web.interceptor.RateLimitInterceptor;
+import com.tenpo.calculator.infrastructure.adapter.in.web.interceptor.SemaphoreRpmLimiter;
 import com.tenpo.calculator.infrastructure.adapter.out.async.AsyncLogPublisher;
+import com.tenpo.calculator.infrastructure.config.WebConfig;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.AutoConfigureDataJpa;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -16,6 +24,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(CalculatorRestController.class)
+@AutoConfigureDataJpa
+@Import({RateLimitInterceptor.class, WebConfig.class, GlobalExceptionHandler.class, SemaphoreRpmLimiter.class})
 class CalculatorRestControllerTest {
 
     @Autowired
@@ -26,6 +36,17 @@ class CalculatorRestControllerTest {
 
     @MockBean
     private AsyncLogPublisher asyncLogPublisher;
+
+    @MockBean
+    private SemaphoreRpmLimiter rpmLimiter; //
+
+    @BeforeEach
+    void setUp() {
+        when(rpmLimiter.allowRequest(any())).thenReturn(true);
+
+        when(calculateUseCase.calculate(anyDouble(), anyDouble()))
+                .thenReturn(new CalculationResult(10.0, 20.0, 10.0, 33.0));
+    }
 
     @Test
     @DisplayName("GET /api/calculate debe retornar 200 OK con el record del resultado")
@@ -54,4 +75,6 @@ class CalculatorRestControllerTest {
         verify(calculateUseCase).calculate(5.0, 5.0);
         verify(asyncLogPublisher).publishAsync(endpoint, params, mockResult.toString(), null);
     }
+
+
 }
