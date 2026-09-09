@@ -2,63 +2,94 @@ package com.tenpo.calculator.infrastructure.adapter.in.web.interceptor;
 
 import com.tenpo.calculator.domain.limiters.RpmLimiter;
 import com.tenpo.calculator.infrastructure.adapter.in.web.exception.RateLimitExceededException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class RateLimitInterceptorTest {
 
-    private RateLimitInterceptor interceptor;
-    private MockHttpServletRequest request;
-    private MockHttpServletResponse response;
+    @Mock
     private RpmLimiter rpmLimiter;
+
+    @Mock
+    private HttpServletRequest request;
+
+    @Mock
+    private HttpServletResponse response;
+
+    private RateLimitInterceptor interceptor;
 
     @BeforeEach
     void setUp() {
-        // Usamos una implementación real o un mock limpio del limiter
-        rpmLimiter = new SemaphoreRpmLimiter();
         interceptor = new RateLimitInterceptor(rpmLimiter);
-        request = new MockHttpServletRequest();
-        response = new MockHttpServletResponse();
     }
 
     @Test
-    @DisplayName("Debe permitir las primeras 3 peticiones y bloquear la 4ta con RateLimitExceededException")
-    void shouldAllowFirstThreeRequestsAndBlockFourth() {
-        request.setRequestURI("/api/calculate");
+    void shouldAllowRequestWhenUnderLimitAndNoForwardedHeader() throws Exception {
+        // Given
+        when(request.getHeader("X-Forwarded-For")).thenReturn(null);
+        when(request.getRemoteAddr()).thenReturn("remote-address");
+        when(rpmLimiter.allowRequest("remote-address")).thenReturn(true);
 
-        // Primeras 3 permitidas
-        assertThat(interceptor.preHandle(request, response, new Object())).isTrue();
-        assertThat(interceptor.preHandle(request, response, new Object())).isTrue();
-        assertThat(interceptor.preHandle(request, response, new Object())).isTrue();
+        // When
+        boolean result = interceptor.preHandle(request, response, new Object());
 
-        // 4ta petición debe lanzar la excepción de límite excedido
-        assertThatThrownBy(() -> interceptor.preHandle(request, response, new Object()))
-                .isInstanceOf(RateLimitExceededException.class)
-                .hasMessage("Rate limit exceeded. Maximum 3 requests per minute allowed.");
+        // Then
+        assertTrue(result);
+        verify(rpmLimiter).allowRequest("remote-address");
     }
 
     @Test
-    @DisplayName("Debe diferenciar límites por IP diferente")
-    void shouldAllowDifferentIpsIndependently() {
-        request.setRequestURI("/api/calculate");
+    void shouldAllowRequestWhenUnderLimitAndEmptyForwardedHeader() throws Exception {
+        // Given
+        when(request.getHeader("X-Forwarded-For")).thenReturn("");
+        when(request.getRemoteAddr()).thenReturn("fallback-address");
+        when(rpmLimiter.allowRequest("fallback-address")).thenReturn(true);
 
-        // IP 1 consume sus 3 permitidas
-        request.setRemoteAddr("192.168.1.10");
-        interceptor.preHandle(request, response, new Object());
-        interceptor.preHandle(request, response, new Object());
-        interceptor.preHandle(request, response, new Object());
+        // When
+        boolean result = interceptor.preHandle(request, response, new Object());
 
-        // IP 2 debería poder hacer peticiones aunque IP 1 haya alcanzado su límite
-        MockHttpServletRequest requestIp2 = new MockHttpServletRequest();
-        requestIp2.setRemoteAddr("192.168.1.20");
-        requestIp2.setRequestURI("/api/calculate");
+        // Then
+        assertTrue(result);
+        verify(rpmLimiter).allowRequest("fallback-address");
+    }
 
-        assertThat(interceptor.preHandle(requestIp2, response, new Object())).isTrue();
+    @Test
+    void shouldAllowRequestWhenUnderLimitAndHasForwardedHeader() throws Exception {
+        // Given
+        when(request.getHeader("X-Forwarded-For")).thenReturn("primary-client, proxy-server");
+        when(rpmLimiter.allowRequest("primary-client")).thenReturn(true);
+
+        // When
+        boolean result = interceptor.preHandle(request, response, new Object());
+
+        // Then
+        assertTrue(result);
+        verify(rpmLimiter).allowRequest("primary-client");
+    }
+
+    @Test
+    void shouldThrowRateLimitExceededExceptionWhenLimitIsExceeded() {
+        // Given
+        when(request.getHeader("X-Forwarded-For")).thenReturn(null);
+        when(request.getRemoteAddr()).thenReturn("blocked-client");
+        when(rpmLimiter.allowRequest("blocked-client")).thenReturn(false);
+
+        // When & Then
+        RateLimitExceededException exception = assertThrows(
+                RateLimitExceededException.class,
+                () -> interceptor.preHandle(request, response, new Object())
+        );
+
+        assertEquals("Rate limit exceeded. Maximum 3 requests per minute allowed.", exception.getMessage());
+        verify(rpmLimiter).allowRequest("blocked-client");
     }
 }

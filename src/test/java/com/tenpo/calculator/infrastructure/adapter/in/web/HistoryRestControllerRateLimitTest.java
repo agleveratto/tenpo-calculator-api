@@ -6,6 +6,7 @@ import com.tenpo.calculator.infrastructure.adapter.in.web.interceptor.RateLimitI
 import com.tenpo.calculator.infrastructure.adapter.in.web.interceptor.SemaphoreRpmLimiter;
 import com.tenpo.calculator.infrastructure.adapter.out.async.AsyncLogPublisher;
 import com.tenpo.calculator.infrastructure.config.WebConfig;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +22,6 @@ import java.util.Collections;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(HistoryRestController.class)

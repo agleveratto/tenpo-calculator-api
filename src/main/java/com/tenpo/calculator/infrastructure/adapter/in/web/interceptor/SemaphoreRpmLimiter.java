@@ -6,16 +6,29 @@ import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 @Slf4j
 @Component
 public class SemaphoreRpmLimiter implements RpmLimiter {
     private final ConcurrentHashMap<String, AtomicInteger> ipRequestCount = new ConcurrentHashMap<>();
-    private long startTime = System.currentTimeMillis();
+    private final Supplier<Long> timeProvider;
+    private long startTime;
+
+    // Constructor por defecto para Spring (producción)
+    public SemaphoreRpmLimiter() {
+        this(System::currentTimeMillis);
+    }
+
+    // Constructor para tests (permite controlar el tiempo)
+    public SemaphoreRpmLimiter(Supplier<Long> timeProvider) {
+        this.timeProvider = timeProvider;
+        this.startTime = timeProvider.get();
+    }
 
     @Override
     public boolean allowRequest(String ipAddress) {
-        long currentTime = System.currentTimeMillis();
+        long currentTime = timeProvider.get();
         long elapsedTime = currentTime - startTime;
 
         if (elapsedTime >= 60000) { // Ventana de 60 segundos
