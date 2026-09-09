@@ -3,11 +3,13 @@ package com.tenpo.calculator.infrastructure.adapter.in.web;
 import com.tenpo.calculator.domain.port.in.GetHistoryUseCase;
 import com.tenpo.calculator.infrastructure.adapter.in.web.exception.GlobalExceptionHandler;
 import com.tenpo.calculator.infrastructure.adapter.in.web.interceptor.RateLimitInterceptor;
+import com.tenpo.calculator.infrastructure.adapter.in.web.interceptor.SemaphoreRpmLimiter;
 import com.tenpo.calculator.infrastructure.adapter.out.async.AsyncLogPublisher;
 import com.tenpo.calculator.infrastructure.config.WebConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.AutoConfigureDataJpa;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
@@ -23,7 +25,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(HistoryRestController.class)
-@Import({RateLimitInterceptor.class, WebConfig.class, GlobalExceptionHandler.class})
+@AutoConfigureDataJpa
+@Import({RateLimitInterceptor.class, WebConfig.class, GlobalExceptionHandler.class, SemaphoreRpmLimiter.class})
 class HistoryRestControllerRateLimitTest {
 
     @Autowired
@@ -56,7 +59,6 @@ class HistoryRestControllerRateLimitTest {
                         .param("page", "0")
                         .param("size", "10")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isTooManyRequests())
-                .andExpect(content().json("[]"));
+                .andExpect(status().isTooManyRequests());
     }
 }

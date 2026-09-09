@@ -2,12 +2,18 @@ package com.tenpo.calculator.infrastructure.adapter.in.web;
 
 import com.tenpo.calculator.domain.model.CalculationResult;
 import com.tenpo.calculator.domain.port.in.CalculateUseCase;
+import com.tenpo.calculator.infrastructure.adapter.in.web.exception.GlobalExceptionHandler;
+import com.tenpo.calculator.infrastructure.adapter.in.web.interceptor.RateLimitInterceptor;
+import com.tenpo.calculator.infrastructure.adapter.in.web.interceptor.SemaphoreRpmLimiter;
 import com.tenpo.calculator.infrastructure.adapter.out.async.AsyncLogPublisher;
+import com.tenpo.calculator.infrastructure.config.WebConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.AutoConfigureDataJpa;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -16,6 +22,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(CalculatorRestController.class)
+@AutoConfigureDataJpa
+@Import({RateLimitInterceptor.class, WebConfig.class, GlobalExceptionHandler.class, SemaphoreRpmLimiter.class})
 class CalculatorRestControllerTest {
 
     @Autowired

@@ -1,6 +1,9 @@
 package com.tenpo.calculator.infrastructure.adapter.out.persistence.web;
 
 import com.tenpo.calculator.domain.model.ApiLog;
+import com.tenpo.calculator.infrastructure.adapter.out.persistence.ApiLogJpaAdapter;
+import com.tenpo.calculator.infrastructure.adapter.out.persistence.ApiLogJpaEntity;
+import com.tenpo.calculator.infrastructure.adapter.out.persistence.SpringDataJpaLogRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
