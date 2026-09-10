@@ -1,6 +1,5 @@
 package com.tenpo.calculator.infrastructure.adapter.in.web.exception;
 
-import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

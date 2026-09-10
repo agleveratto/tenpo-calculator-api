@@ -28,9 +28,8 @@ class AsyncLogPublisherTest {
         String endpoint = "/api/calculate";
         String params = "num1=5.00, num2=5.00";
         String response = "CalculationResult[num1=5.0, num2=5.0, percentageApplied=10.0, finalResult=11.0]";
-        String error = null;
 
-        asyncLogPublisher.publishAsync(endpoint, params, response, error);
+        asyncLogPublisher.publishAsync(endpoint, params, response, null);
 
         ArgumentCaptor<ApiLog> logCaptor = ArgumentCaptor.forClass(ApiLog.class);
         verify(logRepositoryPort).saveLog(logCaptor.capture());

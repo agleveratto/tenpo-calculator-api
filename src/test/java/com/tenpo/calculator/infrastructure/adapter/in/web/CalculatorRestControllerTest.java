@@ -1,6 +1,5 @@
 package com.tenpo.calculator.infrastructure.adapter.in.web;
 
-import com.tenpo.calculator.domain.limiters.RpmLimiter;
 import com.tenpo.calculator.domain.model.CalculationResult;
 import com.tenpo.calculator.domain.port.in.CalculateUseCase;
 import com.tenpo.calculator.infrastructure.adapter.in.web.exception.GlobalExceptionHandler;
