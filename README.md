@@ -74,9 +74,14 @@ El proyecto incluye configuración lista para ejecutar mediante Docker y Docker 
 
 1. **Clonar el repositorio:**
    ```bash
-   git clone https://github.com/tu-usuario/calculator-api.git
+   git clone https://github.com/agleveratto/calculator-api.git
    cd calculator-api
    ```
+
+**Opcional descargar la imagen de docker hub**
+  ```bash
+  docker pull aleveratto/calculator-api:latest
+  ```
 
 2. **Levantar los servicios:**
    ```bash
