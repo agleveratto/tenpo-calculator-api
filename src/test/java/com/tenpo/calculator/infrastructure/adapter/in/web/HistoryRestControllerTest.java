@@ -1,10 +1,10 @@
 package com.tenpo.calculator.infrastructure.adapter.in.web;
 
-import com.tenpo.calculator.domain.limiters.RpmLimiter;
 import com.tenpo.calculator.domain.model.ApiLog;
 import com.tenpo.calculator.domain.port.in.GetHistoryUseCase;
 import com.tenpo.calculator.infrastructure.adapter.in.web.exception.GlobalExceptionHandler;
 import com.tenpo.calculator.infrastructure.adapter.in.web.interceptor.RateLimitInterceptor;
+import com.tenpo.calculator.infrastructure.adapter.in.web.interceptor.SemaphoreRpmLimiter;
 import com.tenpo.calculator.infrastructure.adapter.out.async.AsyncLogPublisher;
 import com.tenpo.calculator.infrastructure.config.WebConfig;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(HistoryRestController.class)
 @AutoConfigureDataJpa
-@Import({RateLimitInterceptor.class, WebConfig.class, GlobalExceptionHandler.class}) // <-- Ya NO importamos SemaphoreRpmLimiter aquí
+@Import({RateLimitInterceptor.class, WebConfig.class, GlobalExceptionHandler.class, SemaphoreRpmLimiter.class})
 class HistoryRestControllerTest {
 
     @Autowired
@@ -41,12 +41,12 @@ class HistoryRestControllerTest {
     private AsyncLogPublisher asyncLogPublisher;
 
     @MockBean
-    private RpmLimiter rpmLimiter; // <-- Mockeamos el limitador para que nunca bloquee por 429
+    private SemaphoreRpmLimiter rpmLimiter; // <-- Mockeamos el limitador para que nunca bloquee por 429
 
     @BeforeEach
     void setUp() {
         // Por defecto, permitimos todas las peticiones en este test
-        when(rpmLimiter.allowRequest(any())).thenReturn(true);
+        when(rpmLimiter.allowRequest(any(), any())).thenReturn(true);
     }
 
     @Test

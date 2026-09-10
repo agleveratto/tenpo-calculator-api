@@ -41,7 +41,7 @@ class CalculatorRestControllerTest {
 
     @BeforeEach
     void setUp() {
-        when(rpmLimiter.allowRequest(any())).thenReturn(true);
+        when(rpmLimiter.allowRequest(any(), any())).thenReturn(true);
 
         when(calculateUseCase.calculate(anyDouble(), anyDouble()))
                 .thenReturn(new CalculationResult(10.0, 20.0, 10.0, 33.0));
