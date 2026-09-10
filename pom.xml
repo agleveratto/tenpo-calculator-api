@@ -42,12 +42,12 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- H2 (Opcional, para pruebas unitarias o desarrollo local sin Docker) -->
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
+<!--        &lt;!&ndash; H2 (Opcional, para pruebas unitarias o desarrollo local sin Docker) &ndash;&gt;-->
+<!--        <dependency>-->
+<!--            <groupId>com.h2database</groupId>-->
+<!--            <artifactId>h2</artifactId>-->
+<!--            <scope>runtime</scope>-->
+<!--        </dependency>-->
 
         <!-- Testing (JUnit 5, Mockito, Spring Test) -->
         <dependency>
@@ -101,6 +101,12 @@
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
+            </plugin>
+
+            <!-- Plugin necesario para generar el JAR ejecutable de Spring Boot -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

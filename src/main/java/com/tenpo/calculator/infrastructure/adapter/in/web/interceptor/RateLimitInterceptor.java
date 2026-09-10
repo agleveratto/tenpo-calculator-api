@@ -1,41 +1,31 @@
 package com.tenpo.calculator.infrastructure.adapter.in.web.interceptor;
 
-import com.tenpo.calculator.domain.limiters.RpmLimiter;
-import com.tenpo.calculator.infrastructure.adapter.in.web.exception.RateLimitExceededException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.http.HttpStatus;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
-import org.springframework.web.server.ResponseStatusException;
 
 @Component
+@RequiredArgsConstructor
 public class RateLimitInterceptor implements HandlerInterceptor {
 
-    private final RpmLimiter rpmLimiter;
-
-    public RateLimitInterceptor(RpmLimiter rpmLimiter) {
-        this.rpmLimiter = rpmLimiter;
-    }
+    private final SemaphoreRpmLimiter rpmLimiter;
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-        // Obtenemos la IP del cliente (considerando si pasa por proxies/load balancers)
-        String clientIp = getClientIp(request);
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        String clientIp = request.getRemoteAddr();
+        String uri = request.getRequestURI();
 
-        // Validamos si la IP puede pasar según el límite de 3 RPM
-        if (!rpmLimiter.allowRequest(clientIp)) {
-            throw new RateLimitExceededException("Rate limit exceeded. Maximum 3 requests per minute allowed.");
+        // Validamos pasándole tanto la IP como la URI para que tengan contadores independientes
+        if (!rpmLimiter.allowRequest(clientIp, uri)) {
+            response.setStatus(429);
+            response.setCharacterEncoding("UTF-8");
+            response.setContentType("text/plain;charset=UTF-8");
+            response.getWriter().write("Rate limit exceeded. Maximum 3 requests per minute allowed for " + uri);
+            return false;
         }
 
         return true;
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        String xfHeader = request.getHeader("X-Forwarded-For");
-        if (xfHeader == null || xfHeader.isEmpty()) {
-            return request.getRemoteAddr();
-        }
-        return xfHeader.split(",")[0];
     }
 }

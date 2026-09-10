@@ -11,34 +11,49 @@ import java.util.function.Supplier;
 @Slf4j
 @Component
 public class SemaphoreRpmLimiter implements RpmLimiter {
-    private final ConcurrentHashMap<String, AtomicInteger> ipRequestCount = new ConcurrentHashMap<>();
-    private final Supplier<Long> timeProvider;
-    private long startTime;
 
-    // Constructor por defecto para Spring (producción)
+    // Clave compuesta: "IP:URI" para aislar los contadores por endpoint
+    private final ConcurrentHashMap<String, AtomicInteger> requestCountMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Long> startTimeMap = new ConcurrentHashMap<>();
+
+    private final Supplier<Long> timeProvider;
+
     public SemaphoreRpmLimiter() {
         this(System::currentTimeMillis);
     }
 
-    // Constructor para tests (permite controlar el tiempo)
     public SemaphoreRpmLimiter(Supplier<Long> timeProvider) {
         this.timeProvider = timeProvider;
-        this.startTime = timeProvider.get();
+    }
+
+    /**
+     * Valida el límite de peticiones por minuto (RPM) por IP y por Endpoint específico.
+     */
+    public boolean allowRequest(String ipAddress, String endpoint) {
+        long currentTime = timeProvider.get();
+        String cacheKey = ipAddress + ":" + endpoint;
+
+        long startTime = startTimeMap.computeIfAbsent(cacheKey, k -> currentTime);
+        long elapsedTime = currentTime - startTime;
+
+        // Si pasó un minuto (60000 ms), reiniciamos la ventana de tiempo y el contador
+        if (elapsedTime >= 60000) {
+            startTimeMap.put(cacheKey, currentTime);
+            AtomicInteger count = requestCountMap.get(cacheKey);
+            if (count != null) {
+                count.set(0);
+            }
+        }
+
+        AtomicInteger requestCount = requestCountMap.computeIfAbsent(cacheKey, k -> new AtomicInteger(0));
+        int currentCount = requestCount.incrementAndGet();
+
+        return currentCount <= 3; // Máximo 3 RPM por endpoint/IP
     }
 
     @Override
     public boolean allowRequest(String ipAddress) {
-        long currentTime = timeProvider.get();
-        long elapsedTime = currentTime - startTime;
-
-        if (elapsedTime >= 60000) { // Ventana de 60 segundos
-            startTime = currentTime;
-            ipRequestCount.clear();
-        }
-
-        AtomicInteger requestCount = ipRequestCount.computeIfAbsent(ipAddress, k -> new AtomicInteger(0));
-
-        int currentCount = requestCount.incrementAndGet();
-        return currentCount <= 3; // Máximo 3 RPM requerido por Tenpo
+        // Fallback por si se invoca la interfaz genérica sin especificar endpoint
+        return allowRequest(ipAddress, "default");
     }
 }

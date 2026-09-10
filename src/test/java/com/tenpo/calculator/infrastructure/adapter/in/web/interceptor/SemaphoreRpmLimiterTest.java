@@ -1,68 +1,73 @@
 package com.tenpo.calculator.infrastructure.adapter.in.web.interceptor;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SemaphoreRpmLimiterTest {
 
-    @Test
-    void shouldAllowRequestsUpToLimit() {
-        SemaphoreRpmLimiter rpmLimiter = new SemaphoreRpmLimiter();
-        String ip = "192.168.1.1";
+    private SemaphoreRpmLimiter rpmLimiter;
+    private AtomicLong fakeTime;
 
-        assertTrue(rpmLimiter.allowRequest(ip));
-        assertTrue(rpmLimiter.allowRequest(ip));
-        assertTrue(rpmLimiter.allowRequest(ip));
+    @BeforeEach
+    void setUp() {
+        fakeTime = new AtomicLong(1000L);
+        // Inyectamos un timeProvider controlado para tests deterministas
+        rpmLimiter = new SemaphoreRpmLimiter(fakeTime::get);
     }
 
     @Test
-    void shouldBlockRequestWhenLimitIsExceeded() {
-        SemaphoreRpmLimiter rpmLimiter = new SemaphoreRpmLimiter();
-        String ip = "192.168.1.2";
+    void shouldAllowUpToThreeRequestsPerEndpointAndBlockFourth() {
+        String ip = "127.0.0.1";
+        String endpoint = "/api/calculate";
 
-        assertTrue(rpmLimiter.allowRequest(ip));
-        assertTrue(rpmLimiter.allowRequest(ip));
-        assertTrue(rpmLimiter.allowRequest(ip));
+        // 1, 2, 3 deberían pasar
+        assertTrue(rpmLimiter.allowRequest(ip, endpoint));
+        assertTrue(rpmLimiter.allowRequest(ip, endpoint));
+        assertTrue(rpmLimiter.allowRequest(ip, endpoint));
 
-        assertFalse(rpmLimiter.allowRequest(ip));
+        // La 4ta debe ser bloqueada (excede 3 RPM)
+        assertFalse(rpmLimiter.allowRequest(ip, endpoint));
     }
 
     @Test
-    void shouldTrackDifferentIpsIndependently() {
-        SemaphoreRpmLimiter rpmLimiter = new SemaphoreRpmLimiter();
-        String ip1 = "192.168.1.10";
-        String ip2 = "192.168.1.20";
+    void shouldIsolateCountersBetweenDifferentEndpoints() {
+        String ip = "127.0.0.1";
+        String calculateEndpoint = "/api/calculate";
+        String historyEndpoint = "/api/history";
 
-        assertTrue(rpmLimiter.allowRequest(ip1));
-        assertTrue(rpmLimiter.allowRequest(ip1));
-        assertTrue(rpmLimiter.allowRequest(ip1));
-        assertFalse(rpmLimiter.allowRequest(ip1));
+        // Consumimos el límite de /api/calculate (3 peticiones)
+        assertTrue(rpmLimiter.allowRequest(ip, calculateEndpoint));
+        assertTrue(rpmLimiter.allowRequest(ip, calculateEndpoint));
+        assertTrue(rpmLimiter.allowRequest(ip, calculateEndpoint));
+        assertFalse(rpmLimiter.allowRequest(ip, calculateEndpoint)); // Bloqueado
 
-        assertTrue(rpmLimiter.allowRequest(ip2));
-        assertTrue(rpmLimiter.allowRequest(ip2));
+        // /api/history debe seguir libre con sus propias 3 peticiones disponibles
+        assertTrue(rpmLimiter.allowRequest(ip, historyEndpoint));
+        assertTrue(rpmLimiter.allowRequest(ip, historyEndpoint));
+        assertTrue(rpmLimiter.allowRequest(ip, historyEndpoint));
+        assertFalse(rpmLimiter.allowRequest(ip, historyEndpoint)); // Bloqueado al 4to
     }
 
     @Test
-    void shouldResetCountWhenTimeWindowExpires() {
-        // Creamos un reloj simulado usando un AtomicLong
-        AtomicLong mockTime = new AtomicLong(1000000L);
-        SemaphoreRpmLimiter rpmLimiter = new SemaphoreRpmLimiter(mockTime::get);
+    void shouldResetCountAfterOneMinute() {
+        String ip = "127.0.0.1";
+        String endpoint = "/api/calculate";
 
-        String ip = "192.168.1.3";
+        // Agotamos el límite
+        assertTrue(rpmLimiter.allowRequest(ip, endpoint));
+        assertTrue(rpmLimiter.allowRequest(ip, endpoint));
+        assertTrue(rpmLimiter.allowRequest(ip, endpoint));
+        assertFalse(rpmLimiter.allowRequest(ip, endpoint));
 
-        // Agota el límite en el tiempo inicial
-        assertTrue(rpmLimiter.allowRequest(ip));
-        assertTrue(rpmLimiter.allowRequest(ip));
-        assertTrue(rpmLimiter.allowRequest(ip));
-        assertFalse(rpmLimiter.allowRequest(ip)); // Bloqueado
+        // Simulamos que pasan 60 segundos (60000 ms)
+        fakeTime.addAndGet(60000L);
 
-        // Avanzamos el tiempo simulado en más de 60 segundos (65000 ms)
-        mockTime.addAndGet(65000L);
-
-        // Debería permitir solicitudes nuevamente porque la ventana expiró
-        assertTrue(rpmLimiter.allowRequest(ip));
+        // Debería permitir nuevamente
+        assertTrue(rpmLimiter.allowRequest(ip, endpoint));
     }
 }
